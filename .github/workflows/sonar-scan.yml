@@ -14,7 +14,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: 'recursive'
+          submodules: 'false'
+
+      - name: Init submodules if configured
+        run: |
+          if [ -f .gitmodules ]; then
+            echo ".gitmodules detected — attempting to init submodules"
+            git submodule sync --recursive
+            git submodule update --init --force --recursive || echo "Submodule update failed; continuing without submodules"
+          else
+            echo ".gitmodules not present; skipping submodule init"
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v4
