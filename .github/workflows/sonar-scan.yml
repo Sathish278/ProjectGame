@@ -1,0 +1,38 @@
+name: CI - Tests & Sonar Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-sonar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install test deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r sonar-test-project/requirements.txt coverage pytest-cov
+
+      - name: Run tests and produce coverage.xml
+        working-directory: sonar-test-project
+        run: |
+          coverage run -m pytest
+          coverage xml -o coverage.xml
+          ls -la
+
+      - name: Run SonarScanner (Docker)
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}/sonar-test-project:/usr/src" -w /usr/src -e SONAR_TOKEN=${SONAR_TOKEN} sonarsource/sonar-scanner-cli bash -lc "sonar-scanner -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.coverageReportPaths=coverage.xml"
