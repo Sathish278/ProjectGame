@@ -27,10 +27,8 @@ jobs:
           if [ -f sonar-test-project/requirements.txt ]; then
             python -m pip install -r sonar-test-project/requirements.txt coverage pytest-cov
           else
-            echo "ERROR: sonar-test-project/requirements.txt not found in repo"
-            echo "Repository root files:"
-            ls -la
-            exit 1
+            echo "sonar-test-project/requirements.txt not found — installing minimal test deps"
+            python -m pip install coverage pytest-cov
           fi
 
       - name: Run tests and produce coverage.xml
