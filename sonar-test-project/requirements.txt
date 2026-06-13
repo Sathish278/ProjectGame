@@ -1,0 +1,2 @@
+# intentionally empty for this demo
+pytest
