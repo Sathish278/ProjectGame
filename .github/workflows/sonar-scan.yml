@@ -53,4 +53,25 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          docker run --rm -v "${{ github.workspace }}/sonar-test-project:/usr/src" -w /usr/src -e SONAR_TOKEN=${SONAR_TOKEN} sonarsource/sonar-scanner-cli bash -lc "sonar-scanner -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.coverageReportPaths=coverage.xml"
+          # Validate inputs
+          if [ -z "${SONAR_HOST_URL}" ] || [ -z "${SONAR_TOKEN}" ]; then
+            echo "ERROR: SONAR_HOST_URL and SONAR_TOKEN must be provided as repository secrets"
+            echo "Set them in Settings → Secrets and try again. Example SONAR_HOST_URL: https://sonarcloud.io or https://your-sonarqube.example.com"
+            exit 1
+          fi
+
+          # Quick connectivity check to the Sonar server
+          echo "Checking Sonar host ${SONAR_HOST_URL}..."
+          if ! curl --fail --silent --show-error --max-time 10 "${SONAR_HOST_URL}/api/server/version" ; then
+            echo "ERROR: Unable to reach Sonar host at ${SONAR_HOST_URL}."
+            echo "Make sure the URL is correct and the server is reachable from the Actions runner."
+            exit 1
+          fi
+
+          # Run SonarScanner in Docker, explicitly pass the token
+          docker run --rm \
+            -v "${{ github.workspace }}/sonar-test-project:/usr/src" \
+            -w /usr/src \
+            -e SONAR_TOKEN=${SONAR_TOKEN} \
+            sonarsource/sonar-scanner-cli bash -lc \
+              "sonar-scanner -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_TOKEN} -Dsonar.coverageReportPaths=coverage.xml"
